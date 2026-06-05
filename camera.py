@@ -1,8 +1,9 @@
 import cv2
 
 # Jetson Nano (Linux) + Logitech C922 Pro USB webcam.
-# V4L2 = the Linux video backend for USB cameras.
-cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # 0 = /dev/video0, the first camera
+# On Linux, V4L2 is already the default backend for USB cameras,
+# so a plain index is enough (this OpenCV build rejects a 2nd arg).
+cap = cv2.VideoCapture(0)  # 0 = /dev/video0, the first camera
 
 if not cap.isOpened():
     raise SystemExit(
@@ -11,10 +12,16 @@ if not cap.isOpened():
 
 # Ask for MJPG: the C922 streams raw YUYV by default, which caps you at ~5 fps
 # at 720p. MJPG lets it do 720p/1080p at 30 fps.
-cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-cap.set(cv2.CAP_PROP_FPS, 30)
+# Wrapped in try/except because this OpenCV build is non-standard and may
+# not expose every helper; the camera still works without these tweaks.
+try:
+    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+    cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FPS, 30)
+except AttributeError:
+    print("Note: skipping MJPG/resolution setup (not supported by this OpenCV build).")
 
 while True:
     ok, frame = cap.read()
