@@ -10,9 +10,16 @@ Stop with Ctrl+C.
 """
 
 import cv2
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 
 PORT = 8080
+
+
+# ThreadingHTTPServer only exists in Python 3.7+; the Nano ships 3.6,
+# so build the threaded server from its parts (works on both).
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
 
 cap = cv2.VideoCapture(0)  # 0 = /dev/video0, the C922
 if not cap.isOpened():
